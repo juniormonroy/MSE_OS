@@ -10,7 +10,6 @@
 
 #include "main.h"
 
-#include "sapi.h"
 #include "board.h"
 
 #include "MSE_OS_Core.h"
