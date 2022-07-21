@@ -1,17 +1,3 @@
-/*
- * main.h
- *
- *  Created on: Jul 19, 2022
- *      Author: Junior
- */
-
-#ifndef MSE_OS_INC_MAIN_H_
-#define MSE_OS_INC_MAIN_H_
-
-
-
-#endif /* MSE_OS_INC_MAIN_H_ */
-
 /* Copyright 2020, Gonzalo E. Sanchez
  * All rights reserved.
  *

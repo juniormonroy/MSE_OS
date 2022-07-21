@@ -1,11 +1,3 @@
-/*
- * main.c
- *
- *  Created on: Jul 19, 2022
- *      Author: Junior
- */
-
-
 /*==================[inclusions]=============================================*/
 
 #include "main.h"
@@ -14,6 +6,7 @@
 
 #include "MSE_OS_Core.h"
 
+#include "sapi.h"
 
 /*==================[macros and definitions]=================================*/
 
@@ -21,12 +14,11 @@
 
 /*==================[Global data declaration]==============================*/
 
-uint32_t stack1[STACK_SIZE];		//espacio reservado para el stack de la tarea 1
-uint32_t stack2[STACK_SIZE];		//espacio reservado para el stack de la tarea 2
+tarea g_sTarea1, g_sTarea2,g_sTarea3;
+tarea g_sTarea4, g_sTarea5,g_sTarea6;
+tarea g_sTarea7, g_sTarea8,g_sTarea9;
 
-uint32_t sp_tarea1;					//Stack Pointer para la tarea 1
-uint32_t sp_tarea2;					//Stack Pointer para la tarea 2
-
+int flag;
 
 /*==================[internal functions declaration]=========================*/
 
@@ -48,23 +40,78 @@ static void initHardware(void)  {
 
 /*==================[Definicion de tareas para el OS]==========================*/
 void tarea1(void)  {
-	uint16_t h = 0;
-	uint16_t i = 0;
+
+	uint32_t i = 0;
+	flag = 0;
 	while (1) {
-		h++;
-		i++;
+
+
+		if(flag == 0)
+		{
+			gpioWrite(LEDB,ON);
+			for(i = 0;i < 900000;i++);
+			gpioWrite(LEDB,OFF);
+			for(i = 0;i < 900000;i++);
+
+			flag = 1;
+		}
+
+
 	}
 }
 
 void tarea2(void)  {
-	uint16_t j = 0;
-	uint16_t k = 0;
+	uint32_t j = 0;
+
 
 	while (1) {
-		j++;
-		k++;
+		if(flag == 1)
+		{
+			gpioWrite(LED1,ON);
+			for(j = 0;j < 900000;j++);
+			gpioWrite(LED1,OFF);
+			for(j = 0;j < 900000;j++);
+			flag = 2;
+		}
+
 	}
 }
+
+void tarea3(void)  {
+	uint32_t k = 0;
+
+
+	while (1) {
+		if(flag == 2)
+		{
+			gpioWrite(LED2,ON);
+			for(k = 0;k < 900000;k++);
+			gpioWrite(LED2,OFF);
+			for(k = 0;k < 900000;k++);
+			flag = 3;
+		}
+
+	}
+}
+
+void tarea4(void)  {
+	uint32_t l = 0;
+
+
+	while (1) {
+
+		if(flag == 3)
+		{
+			gpioWrite(LED3,ON);
+			for(l = 0;l < 900000;l++);
+			gpioWrite(LED3,OFF);
+			for(l = 0;l < 900000;l++);
+			flag = 0;
+		}
+
+	}
+}
+
 
 /*============================================================================*/
 
@@ -72,10 +119,13 @@ int main(void)  {
 
 	initHardware();
 
-	os_Init();
+	os_InitTarea(tarea1, &g_sTarea1);
+	os_InitTarea(tarea2, &g_sTarea2);
+	os_InitTarea(tarea3, &g_sTarea3);
+	os_InitTarea(tarea4, &g_sTarea4);
 
-	os_InitTarea(tarea1, &stack1, &sp_tarea1);
-	os_InitTarea(tarea2, &stack2, &sp_tarea2);
+
+	os_Init();
 
 	while (1) {
 	}
