@@ -82,8 +82,7 @@
 
 enum _estadoTarea  {
 	TAREA_READY,
-	TAREA_RUNNING,
-	TAREA_SUSPEND
+	TAREA_RUNNING
 };
 
 typedef enum _estadoTarea estadoTarea;
