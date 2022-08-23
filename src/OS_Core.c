@@ -13,9 +13,9 @@
 static osControl control_OS;
 
 /*==================[definicion de funciones de OS]=================================*/
-void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t id, uint32_t prioridad)
+void os_InitTarea(void *entryPoint, tarea *task, const char * const taskName, void * const Parameter, uint32_t prioridad)
 {
-	//static uint8_t id = 0;				//el id sera correlativo a medida que se generen mas tareas
+	static uint8_t id = 0;				//el id sera correlativo a medida que se generen mas tareas
 
 	if(control_OS.cantidad_Tareas < MAX_TASK_COUNT)
 	{
@@ -45,7 +45,7 @@ void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * c
 	{
 
 		control_OS.error = ERR_OS_CANT_TAREAS;
-		//errorHook(os_InitTarea, error);
+		errorHook(os_InitTarea, control_OS.error);////////////////////////////
 	}
 }
 
@@ -53,21 +53,24 @@ void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * c
 void os_Init(void)
 {
 
+
 	NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
+
 
 	control_OS.estado_previo = OS_FROM_RESET;
 	control_OS.estado_sistema = OS_FROM_RESET;
 	control_OS.tarea_actual = NULL;
 	control_OS.tarea_siguiente = NULL;
 	control_OS.error = 0;
-	control_OS.cantidad_Tareas = 0;
+	//control_OS.cantidad_Tareas = 0;
 
 	for (uint8_t i = 0; i < MAX_TASK_COUNT; i++)
 	{
 
 		if(i>=control_OS.cantidad_Tareas)
+		{
 			control_OS.listaTareas[i] = NULL;
-
+		}
 	}
 
 
@@ -85,15 +88,19 @@ static void scheduler(void)
 {
 	uint8_t indice;		//variable auxiliar para legibilidad
 
-	if (control_OS.estado_sistema == OS_FROM_RESET)  {
+	if (control_OS.estado_sistema == OS_FROM_RESET)
+	{
 		control_OS.tarea_actual = (tarea*) control_OS.listaTareas[0];
 	}
-	else {
+	else
+	{
 		indice = control_OS.tarea_actual->id+1;
-		if(indice < control_OS.cantidad_Tareas)  {
+		if(indice < control_OS.cantidad_Tareas)
+		{
 			control_OS.tarea_siguiente = (tarea*) control_OS.listaTareas[indice];
 		}
-		else  {
+		else
+		{
 			control_OS.tarea_siguiente = (tarea*) control_OS.listaTareas[0];
 		}
 	}

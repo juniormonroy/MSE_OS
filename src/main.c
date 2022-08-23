@@ -3,7 +3,7 @@
 #include "main.h"
 #include "board.h"
 #include "OS_Core.h"
-#include "OS_Types.h"
+#include "OS_Hooks.h"
 #include "sapi.h"
 
 /*==================[macros and definitions]=================================*/
@@ -12,9 +12,8 @@
 
 /*==================[Global data declaration]==============================*/
 
-tarea g_sTarea1, g_sTarea2,g_sTarea3;
-tarea g_sTarea4, g_sTarea5,g_sTarea6;
-tarea g_sTarea7, g_sTarea8,g_sTarea9;
+tarea g_sTarea1, g_sTarea2, g_sTarea3, g_sTarea4, g_sTarea5, g_sTarea6, g_sTarea7, g_sTarea8;
+
 
 int flag;
 
@@ -130,7 +129,6 @@ int main(void)
 			&g_sTarea1, //handler de la tarea
 			"TAREA01", 	//nombre de referencia de la tarea
 			NULL, 		//pasaje de parametros a la tarea
-			1, 			//id de la tarea
 			0			//prioridad de la tarea
 			);
 
@@ -140,7 +138,6 @@ int main(void)
 			&g_sTarea2, //handler de la tarea
 			"TAREA02", 	//nombre de referencia de la tarea
 			NULL, 		//pasaje de parametros a la tarea
-			2, 			//id de la tarea
 			0			//prioridad de la tarea
 			);
 
@@ -149,7 +146,6 @@ int main(void)
 			&g_sTarea3, //handler de la tarea
 			"TAREA03", 	//nombre de referencia de la tarea
 			NULL, 		//pasaje de parametros a la tarea
-			3, 			//id de la tarea
 			0			//prioridad de la tarea
 			);
 
@@ -158,7 +154,6 @@ int main(void)
 			&g_sTarea4, //handler de la tarea
 			"TAREA04", 	//nombre de referencia de la tarea
 			NULL, 		//pasaje de parametros a la tarea
-			4, 			//id de la tarea
 			0			//prioridad de la tarea
 			);
 

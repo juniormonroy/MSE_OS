@@ -99,7 +99,7 @@ typedef struct _tarea tarea;
 struct _osControl  {
 	void *listaTareas[MAX_TASK_COUNT];			//array de punteros a tareas
 	int32_t error;								//variable que contiene el ultimo error generado
-	uint8_t cantidad_Tareas;					//cantidad de tareas definidas por el usuario para cada prioridad
+	uint32_t cantidad_Tareas;					//cantidad de tareas definidas por el usuario para cada prioridad
 	estadoOS estado_sistema;					//Informacion sobre el estado del OS
 	estadoOS estado_previo;					//Informacion sobre el estado del OS anterior
 	tarea *tarea_actual;				//definicion de puntero para tarea actual
@@ -111,7 +111,7 @@ typedef struct _osControl osControl;
 
 
 //definicion de prototipos
-void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t id, uint32_t prioridad);
+void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t prioridad);
 void os_Init(void);
 int32_t os_getError(void);
 
