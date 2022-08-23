@@ -85,8 +85,8 @@ struct _tarea  {
 	uint32_t stack_pointer;
 	void *entry_point;
 	estadoTarea estado;
-	uint8_t prioridad;
-	uint8_t id;
+	uint32_t prioridad;
+	uint32_t id;
 	uint32_t ticks_bloqueados;
 	char name[TASK_NAME_SIZE];
 };
@@ -111,7 +111,7 @@ typedef struct _osControl osControl;
 
 
 //definicion de prototipos
-void os_InitTarea(void *entryPoint, tarea *task);
+void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t id, uint32_t prioridad);
 void os_Init(void);
 int32_t os_getError(void);
 

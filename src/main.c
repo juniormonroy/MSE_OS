@@ -29,7 +29,8 @@ int flag;
 /** @brief hardware initialization function
  *	@return none
  */
-static void initHardware(void)  {
+static void initHardware(void)
+{
 	Board_Init();
 	SystemCoreClockUpdate();
 	SysTick_Config(SystemCoreClock / MILISEC);		//systick 1ms
@@ -37,11 +38,13 @@ static void initHardware(void)  {
 
 
 /*==================[Definicion de tareas para el OS]==========================*/
-void tarea1(void)  {
+void tarea1(void)
+{
 
 	uint32_t i = 0;
 	flag = 0;
-	while (1) {
+	while (1)
+	{
 
 
 		if(flag == 0)
@@ -58,11 +61,13 @@ void tarea1(void)  {
 	}
 }
 
-void tarea2(void)  {
+void tarea2(void)
+{
 	uint32_t j = 0;
 
 
-	while (1) {
+	while (1)
+	{
 		if(flag == 1)
 		{
 			gpioWrite(LED1,ON);
@@ -75,7 +80,8 @@ void tarea2(void)  {
 	}
 }
 
-void tarea3(void)  {
+void tarea3(void)
+{
 	uint32_t k = 0;
 
 
@@ -92,7 +98,8 @@ void tarea3(void)  {
 	}
 }
 
-void tarea4(void)  {
+void tarea4(void)
+{
 	uint32_t l = 0;
 
 
@@ -113,14 +120,47 @@ void tarea4(void)  {
 
 /*============================================================================*/
 
-int main(void)  {
+int main(void)
+{
 
 	initHardware();
 
-	os_InitTarea(tarea1, &g_sTarea1);
-	os_InitTarea(tarea2, &g_sTarea2);
-	os_InitTarea(tarea3, &g_sTarea3);
-	os_InitTarea(tarea4, &g_sTarea4);
+	os_InitTarea(
+			tarea1,		//Funcion asociada a la tarea
+			&g_sTarea1, //handler de la tarea
+			"TAREA01", 	//nombre de referencia de la tarea
+			NULL, 		//pasaje de parametros a la tarea
+			1, 			//id de la tarea
+			0			//prioridad de la tarea
+			);
+
+
+	os_InitTarea(
+			tarea2, 	//Funcion asociada a la tarea
+			&g_sTarea2, //handler de la tarea
+			"TAREA02", 	//nombre de referencia de la tarea
+			NULL, 		//pasaje de parametros a la tarea
+			2, 			//id de la tarea
+			0			//prioridad de la tarea
+			);
+
+	os_InitTarea(
+			tarea3, 	//Funcion asociada a la tarea
+			&g_sTarea3, //handler de la tarea
+			"TAREA03", 	//nombre de referencia de la tarea
+			NULL, 		//pasaje de parametros a la tarea
+			3, 			//id de la tarea
+			0			//prioridad de la tarea
+			);
+
+	os_InitTarea(
+			tarea4, 	//Funcion asociada a la tarea
+			&g_sTarea4, //handler de la tarea
+			"TAREA04", 	//nombre de referencia de la tarea
+			NULL, 		//pasaje de parametros a la tarea
+			4, 			//id de la tarea
+			0			//prioridad de la tarea
+			);
 
 
 	os_Init();

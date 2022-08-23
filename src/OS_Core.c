@@ -13,9 +13,9 @@
 static osControl control_OS;
 
 /*==================[definicion de funciones de OS]=================================*/
-void os_InitTarea(void *entryPoint, tarea *task)
+void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t id, uint32_t prioridad)
 {
-	static uint8_t id = 0;				//el id sera correlativo a medida que se generen mas tareas
+	//static uint8_t id = 0;				//el id sera correlativo a medida que se generen mas tareas
 
 	if(control_OS.cantidad_Tareas < MAX_TASK_COUNT)
 	{
@@ -53,7 +53,7 @@ void os_InitTarea(void *entryPoint, tarea *task)
 void os_Init(void)
 {
 
-
+	NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
 
 	control_OS.estado_previo = OS_FROM_RESET;
 	control_OS.estado_sistema = OS_FROM_RESET;
@@ -70,7 +70,7 @@ void os_Init(void)
 
 	}
 
-	NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
+
 
 }
 
