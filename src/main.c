@@ -1,11 +1,9 @@
 /*==================[inclusions]=============================================*/
 
 #include "main.h"
-
 #include "board.h"
-
-#include "MSE_OS_Core.h"
-
+#include "OS_Core.h"
+#include "OS_Types.h"
 #include "sapi.h"
 
 /*==================[macros and definitions]=================================*/
