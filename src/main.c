@@ -1,3 +1,9 @@
+/*
+ * main.c
+ *
+ *  Created on: Aug 22, 2022
+ *      Author: junior
+ */
 /*==================[inclusions]=============================================*/
 
 #include "main.h"
@@ -9,6 +15,21 @@
 /*==================[macros and definitions]=================================*/
 
 #define MILISEC		1000
+
+#define TEC1_port	0
+#define TEC1_bit	4
+
+#define TEC2_port	0
+#define TEC2_bit	8
+
+
+#define TEC3_port	0
+#define TEC3_bit	9
+
+#define TEC4_port	1
+#define TEC4_bit	9
+
+#define IRQ_QTY 	45
 
 /*==================[Global data declaration]==============================*/
 
@@ -33,6 +54,37 @@ static void initHardware(void)
 	Board_Init();
 	SystemCoreClockUpdate();
 	SysTick_Config(SystemCoreClock / MILISEC);		//systick 1ms
+	uartConfig(UART_USB, 115200);
+
+	//TEC1 FALL
+	Chip_SCU_GPIOIntPinSel(0, TEC1_port, TEC1_bit);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH0);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH0);
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH0);
+
+
+	//TEC2 FALL
+	Chip_SCU_GPIOIntPinSel(2, TEC2_port, TEC2_bit);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH2);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH2);
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH2);
+
+
+	//TEC3 FALL
+	Chip_SCU_GPIOIntPinSel(4, TEC3_port, TEC3_bit);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH4);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH4);
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH4);
+
+
+	//TEC4 FALL
+	Chip_SCU_GPIOIntPinSel(6, TEC4_port, TEC4_bit);
+	Chip_PININT_ClearIntStatus( LPC_GPIO_PIN_INT, PININTCH6);
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH6);
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH6);
+
+
+
 }
 
 

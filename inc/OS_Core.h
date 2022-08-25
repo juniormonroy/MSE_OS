@@ -49,10 +49,9 @@
 
 //definicion codigos de error de OS
 #define ERR_OS_CANT_TAREAS		-1
-#define MEMORY_ERROR	0x01
-#define TASK_RETURN_ERROR	0x02
-#define TASK_MAX_ERROR	0x03
-#define ISR_ERROR	0x04
+#define MEMORY_ERROR			-2
+#define TASK_RETURN_ERROR		-3
+#define ISR_ERROR				-4
 
 
 //definicion de datos para el OS
@@ -61,7 +60,7 @@ typedef enum _estadoTarea
 {
 	TAREA_READY,
 	TAREA_RUNNING,
-	TASK_BLOCKED
+	TAREA_BLOCKED
 }estadoTarea;
 
 

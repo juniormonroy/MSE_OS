@@ -16,5 +16,7 @@ void __attribute__((weak)) tickHook(void);
 
 void __attribute__((weak)) errorHook(void *caller, uint32_t error);
 
+void __attribute__((weak)) taskIDLE(void);
+
 
 #endif /* MSE_ISO_MSE_OS_INC_OS_HOOKS_H_ */
