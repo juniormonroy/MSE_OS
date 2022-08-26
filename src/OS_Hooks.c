@@ -11,7 +11,7 @@
 #include "OS_Hooks.h"
 
 
-void __attribute__((weak)) returnHook(void)
+void __attribute__((weak)) RETURN_HOOKS_OS(void)
 {
 	while(1)
 	{
@@ -21,14 +21,14 @@ void __attribute__((weak)) returnHook(void)
 
 
 
-void __attribute__((weak)) tickHook(void)
+void __attribute__((weak)) TICK_HOOKS_OS(void)
 {
 	__asm volatile( "nop" );
 	//__asm("wfi");
 }
 
 
-void __attribute__((weak)) errorHook(void *caller, uint32_t error)
+void __attribute__((weak)) ERROR_HOOKS_OS(void *caller, uint32_t error)
 {
 
 
@@ -58,7 +58,7 @@ void __attribute__((weak)) errorHook(void *caller, uint32_t error)
 }
 
 
-void __attribute__((weak)) taskIDLE(void)
+void __attribute__((weak)) TASK_IDLE_OS(void)
 {
 
 	while(1)

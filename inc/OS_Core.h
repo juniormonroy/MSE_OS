@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include "board.h"
 
-
 //Tamaño del stack predefinido para cada tarea expresado en bytes
 #define STACK_SIZE 256
 
@@ -45,13 +44,15 @@
 #define TASK_NAME_SIZE				10	//tamaño array correspondiente al nombre
 #define MAX_TASK_COUNT				8	//cantidad maxima de tareas para este OS
 
-
+#define ERROR		-1
+#define RETURN_FAIL  0
+#define RETURN_OK 	 1
 
 //definicion codigos de error de OS
-#define ERR_OS_CANT_TAREAS		-1
-#define MEMORY_ERROR			-2
-#define TASK_RETURN_ERROR		-3
-#define ISR_ERROR				-4
+#define ERR_OS_CANT_TAREAS		-2
+#define MEMORY_ERROR			-3
+#define TASK_RETURN_ERROR		-4
+#define ISR_ERROR				-5
 
 
 //definicion de datos para el OS
@@ -91,12 +92,12 @@ struct _tarea  {
 };
 typedef struct _tarea tarea;
 
-
+tarea TaskIdle;
 
 
 //Definicion de la estructura de control para el sistema operativo
 struct _osControl  {
-	void *listaTareas[MAX_TASK_COUNT];			//array de punteros a tareas
+	tarea *listaTareas[MAX_TASK_COUNT];			//array de punteros a tareas
 	int32_t error;								//variable que contiene el ultimo error generado
 	uint32_t cantidad_Tareas;					//cantidad de tareas definidas por el usuario para cada prioridad
 	estadoOS estado_sistema;					//Informacion sobre el estado del OS
@@ -109,13 +110,35 @@ struct _osControl  {
 typedef struct _osControl osControl;
 
 
+
+
+
+
 //definicion de prototipos
-void os_InitTarea(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t prioridad);
-void os_Init(void);
-int32_t os_getError(void);
+void INIT_TAREA_OS(void *entryPoint, tarea *task, const char * taskName, void * const Parameter, uint32_t prioridad);
+void INICIALIZACION_OS(void);
+int32_t GET_ERROR_OS(void);
 
 
+void TASK_ENTER_CRITICAL_OS(void);
+void TASK_EXIT_CRITICAL_OS(void);
 
 
+void CPU_YIELD_OS(void);
 
 
+uint32_t GET_TICK_COUNT_OS( void );
+void SET_CURRENT_TASK_TICK_OS( uint32_t ticks_block);
+
+
+tarea* GET_CURRENT_TASK_OS(void);
+void BLOCK_CURRENT_TASK_OS(void);
+void UNBLOCK_CURRENT_TASK_OS(tarea* task);
+
+
+void SET_STATE_OS(estadoOS state);
+void SET_PREVIOUS_STATE_OS(void);
+
+void INIT_STRUCT_CONTROL_OS(void);
+
+static void os_set_pendSV(void);
