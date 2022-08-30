@@ -16,3 +16,10 @@ Una tarea de baja prioridad siempre esta corriendo en paralelo para encender y a
 
 
 ![Diagrama ISO](https://user-images.githubusercontent.com/87079881/187349380-d29026ac-fa5c-4450-a85b-d4d870658a51.png)
+
+
+
+
+Enlace al video:
+
+https://drive.google.com/file/d/1CJUmDpfNH870V2uo4UWVjMcVKIlIBdd_/view?usp=sharing
