@@ -4,26 +4,34 @@
  *  Created on: Aug 26, 2022
  *      Author: junior
  */
-
 #include "OS_Delay.h"
 
-#define TickRateMS 1
 
-void DELAY_OS(uint32_t time_ms)
+void DELAY_OS(uint32_t ticks)
 {
-	uint32_t aux_ticks;
-	uint32_t current_ticks;
+	tarea* tarea_actual;
 
-	TASK_ENTER_CRITICAL_OS();
+	if(GET_ESTADO_SISTEMA_OS() == OS_IRQ_RUN)
+	{
+		SET_ERROR_OS(ERR_OS_DELAY_FROM_ISR,DELAY_OS);
+	}
 
-	current_ticks = GET_TICK_COUNT_OS();
+	if(ticks > 0)
+	{
+		TASK_ENTER_CRITICAL_OS();
 
-	aux_ticks = current_ticks + time_ms /TickRateMS;
 
-	SET_CURRENT_TASK_TICK_OS(aux_ticks);
+		tarea_actual = GET_CURRENT_TASK_OS();
+		tarea_actual->ticks_bloqueados = ticks;
 
-	BLOCK_CURRENT_TASK_OS();
 
+		TASK_EXIT_CRITICAL_OS();
+
+
+		while (tarea_actual->ticks_bloqueados > 0)
+		{
+			tarea_actual->estado = TAREA_BLOCKED;
+			CPU_YIELD_OS();
+		}
+	}
 }
-
-

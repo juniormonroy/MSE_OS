@@ -10,6 +10,8 @@
 
 
 
+#include "OS_Core.h"
+
 
 void __attribute__((weak)) RETURN_HOOKS_OS(void);
 

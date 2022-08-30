@@ -11,19 +11,19 @@
 #include "OS_Core.h"
 
 
-typedef struct _sem
+//Definicion de la estructura para los semaforos
+struct _semaforo
 {
-	tarea* 	task;
-	bool 	    taked;
-} sem_t;
+	tarea* tarea_asociada;
+	bool tomado;
+};
+typedef struct _semaforo osSemaforo;
 
 
+void SEMAFORO_INIT_OS(osSemaforo* sem);
+void SEMAFORO_TAKE_OS(osSemaforo* sem);
+void SEMAFORO_GIVE_OS(osSemaforo* sem);
 
-void SEMAPH_INIT_OS(sem_t* sem);
-
-void SEMAPH_TAKE_OS(sem_t* sem);
-
-void SEMAPH_GIVE_OS(sem_t* sem);
 
 
 #endif /* MSE_ISO_MSE_OS_INC_SEMAPHORE_H_ */

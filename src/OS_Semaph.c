@@ -5,49 +5,54 @@
  *      Author: junior
  */
 
-
 #include "OS_Semaph.h"
 
-sem_t semLed;
-sem_t semWrite;
 
-void SEMAPH_INIT_OS(sem_t* sem)
+void SEMAFORO_INIT_OS(osSemaforo* sem)
 {
-	sem->taked = TRUE;
-	sem->task = NULL;
+	sem->tomado = true;
+	sem->tarea_asociada = NULL;
 }
 
-/* */
-void SEMAPH_TAKE_OS(sem_t* sem)
+void SEMAFORO_TAKE_OS(osSemaforo* sem)
 {
-	TASK_ENTER_CRITICAL_OS();
-	if(sem->taked)
-	{
-		sem->task = GET_CURRENT_TASK_OS();
-		BLOCK_CURRENT_TASK_OS();
-	}
-	else
-	{
-		sem->taked = TRUE;
-	}
-	TASK_EXIT_CRITICAL_OS();
-}
+	bool Salir = false;
+	tarea* tarea_actual;
 
-/* */
-void SEMAPH_GIVE_OS(sem_t* sem)
-{
-	if(sem->taked)
+	while (!Salir)
 	{
-		sem->taked = FALSE;
-		if(sem->task != NULL)
+
+		if(sem->tomado)
 		{
-			UNBLOCK_CURRENT_TASK_OS(sem->task);
+			TASK_ENTER_CRITICAL_OS();
+
+			tarea_actual = GET_CURRENT_TASK_OS();
+			tarea_actual->estado = TAREA_BLOCKED;
+			sem->tarea_asociada = tarea_actual;
+
+			TASK_EXIT_CRITICAL_OS();
+			CPU_YIELD_OS();
 		}
+		else
+		{
+			sem->tomado = true;
+			Salir = true;
+		}
+
 	}
 }
 
-void init_sems(void)
+void SEMAFORO_GIVE_OS(osSemaforo* sem)
 {
-	SEMAPH_INIT_OS(&semLed);
-	SEMAPH_INIT_OS(&semWrite);
+
+
+	if (sem->tomado == true &&	sem->tarea_asociada != NULL)
+	{
+		sem->tomado = false;
+		sem->tarea_asociada->estado = TAREA_READY;
+
+
+		if (GET_ESTADO_SISTEMA_OS() == OS_IRQ_RUN)
+			 SET_SCHEDULE_FROM_ISR_OS(true);
+	}
 }

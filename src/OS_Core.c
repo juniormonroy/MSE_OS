@@ -4,29 +4,33 @@
  *  Created on: Aug 22, 2022
  *      Author: junior
  */
-
-#include "sapi.h"
 #include "OS_Core.h"
 #include "OS_Hooks.h"
-#include <string.h>
+#include "OS_Queue.h"
+#include "OS_Semaph.h"
 
-#define MAX_TASK_LIST 8
 /*==================[definicion de variables globales]=================================*/
 
 static osControl control_OS;
+static tarea tareaIdle;
 
 //----------------------------------------------------------------------------------
+
+/*==================[definicion de prototipos static]=================================*/
+static void INIT_TASK_IDLE_OS(void);
+static void setPendSV(void);
+static void PRIORITY_ORDER_OS(void);
+
 
 
 /*==================[definicion de funciones de OS]=================================*/
 
-void INIT_TAREA_OS(void *entryPoint, tarea *task, const char * const taskName, void * const Parameter, uint32_t prioridad)
+void INIT_TAREA_OS(void *entryPoint, tarea *task, const char * const taskName, void * Param, uint8_t prioridad)
 {
 	static uint8_t id = 0;
 
-
-
-	if(control_OS.cantidad_Tareas < MAX_TASK_COUNT)  {
+	if(control_OS.cantidad_Tareas < MAX_TASK_COUNT)
+	{
 
 		task->stack[STACK_SIZE/4 - XPSR] = INIT_XPSR;					//necesario para bit thumb
 		task->stack[STACK_SIZE/4 - PC_REG] = (uint32_t)entryPoint;		//direccion de la tarea (ENTRY_POINT)
@@ -41,307 +45,360 @@ void INIT_TAREA_OS(void *entryPoint, tarea *task, const char * const taskName, v
 		task->entry_point = entryPoint;
 		task->id = id;
 		task->estado = TAREA_READY;
-		strcpy(task->name , taskName);
-		task->ticks_bloqueados = 0;
 		task->prioridad = prioridad;
+
+		strcpy(task->name , taskName);
+		task->Parameter = Param;
+
 
 		control_OS.listaTareas[id] = task;
 		control_OS.cantidad_Tareas++;
+		control_OS.cantTareas_prioridad[prioridad]++;
 
 		id++;
 	}
 
-	else {
+	else
+	{
 
-		control_OS.error = ERR_OS_CANT_TAREAS;
-		ERROR_HOOKS_OS(INIT_TAREA_OS, control_OS.error);
+		SET_ERROR_OS(ERR_OS_CANT_TAREAS,INIT_TAREA_OS);
 	}
-
-
 }
 
-
-
-void INICIALIZACION_OS(void)  {
+void INICIALIZACION_OS(void)
+{
 
 	NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS)-1);
 
+	INIT_TASK_IDLE_OS();
 
 	control_OS.estado_sistema = OS_FROM_RESET;
 	control_OS.tarea_actual = NULL;
 	control_OS.tarea_siguiente = NULL;
 
 
-
-
-	for (uint8_t i = 0; i < MAX_TASK_COUNT; i++)  {
+	for (uint8_t i = 0; i < MAX_TASK_COUNT; i++)
+	{
 		if(i>=control_OS.cantidad_Tareas)
 			control_OS.listaTareas[i] = NULL;
 	}
+
+	PRIORITY_ORDER_OS();
 }
 
 
-
-
-
-int32_t GET_ERROR_OS(void)  {
+int32_t GET_ERROR_OS(void)
+{
 	return control_OS.error;
 }
 
 
-//##################
-
-
-static bool scheduler(void)
+static void INIT_TASK_IDLE_OS(void)
 {
-	uint32_t i_task;
-	tarea *aux_p_task;
-	int i, j;
-	uint8_t  aux_p = 0;
-	uint32_t current_ticks;
+	tareaIdle.stack[STACK_SIZE/4 - XPSR] = INIT_XPSR;					//necesario para bit thumb
+	tareaIdle.stack[STACK_SIZE/4 - PC_REG] = (uint32_t)TASK_IDLE_OS;		//direccion de la tarea (ENTRY_POINT)
+	tareaIdle.stack[STACK_SIZE/4 - LR] = (uint32_t)RETURN_HOOKS_OS;			//Retorno de la tarea (no deberia darse)
+
+
+	tareaIdle.stack[STACK_SIZE/4 - LR_PREV_VALUE] = EXEC_RETURN;
+	tareaIdle.stack_pointer = (uint32_t) (tareaIdle.stack + STACK_SIZE/4 - FULL_STACKING_SIZE);
+
+	strcpy(tareaIdle.name , NULL);
+	tareaIdle.Parameter = NULL;
+
+	tareaIdle.entry_point = TASK_IDLE_OS;
+	tareaIdle.id = 0xFF;
+	tareaIdle.estado = TAREA_READY;
+	tareaIdle.prioridad = 0xFF;
+}
+
+
+static void scheduler(void)
+{
+	static uint8_t indicePrioridad[PRIORITY_COUNT];		//indice de tareas a ejecutar segun prioridad
+	uint8_t indiceArrayTareas = 0;
+	uint8_t prioridad_actual = MAX_PRIORITY;			//Maxima prioridad al iniciar
+	uint8_t cantBloqueadas_prioActual = 0;
+	bool salir = false;
+	uint8_t cant_bloqueadas = 0;
+	estadoOS estado_anterior;
+
 
 	if (control_OS.estado_sistema == OS_FROM_RESET)
 	{
-		i_task = 1;
-		/* Set current task as first configure task */
-		control_OS.tarea_actual = control_OS.listaTareas[i_task-1];
+		control_OS.tarea_actual = (tarea*) &tareaIdle;
+		memset(indicePrioridad,0,sizeof(uint8_t) * PRIORITY_COUNT);
+		control_OS.estado_sistema = OS_NORMAL_RUN;
 	}
-	else
+
+	if (control_OS.estado_sistema == OS_SCHEDULING)
 	{
-		/*The scheduler can be called from an exception given by Systick in Handler mode,
-		 * or by the function os_cpu_yield in Thread mode */
-		if (control_OS.estado_sistema == OS_SCHEDULING)
-		{
-			return RETURN_FAIL;
-		}
-		else
-		{
-			SET_STATE_OS(OS_SCHEDULING);
-		}
+		return;
+	}
 
-		aux_p = 255;
+	control_OS.estado_sistema = OS_SCHEDULING;
 
-		if(control_OS.tarea_actual->id < control_OS.cantidad_Tareas)
-			j = control_OS.tarea_actual->id;
-		else
-			j = 0;
+	while(!salir)
+	{
 
-		for(i=0;i<control_OS.cantidad_Tareas;i++)
+		indiceArrayTareas = 0;
+
+		if(control_OS.cantTareas_prioridad[prioridad_actual] > 0)
 		{
-			if(control_OS.listaTareas[j]-> estado == TAREA_BLOCKED)
+
+			indicePrioridad[prioridad_actual] %= control_OS.cantTareas_prioridad[prioridad_actual];
+
+			for (int i=0; i<prioridad_actual;i++)
 			{
-				if(control_OS.listaTareas[j]->ticks_bloqueados != 0)
+				indiceArrayTareas += control_OS.cantTareas_prioridad[i];
+			}
+			indiceArrayTareas += indicePrioridad[prioridad_actual];
+
+
+
+			if(( (tarea*)control_OS.listaTareas[indiceArrayTareas] )->estado == TAREA_READY)
+			{
+				control_OS.tarea_siguiente = (tarea*) control_OS.listaTareas[indiceArrayTareas];
+				control_OS.cambioContextoNecesario = true;
+				indicePrioridad[prioridad_actual]++;
+				salir = true;
+
+
+			}
+			else if(( (tarea*)control_OS.listaTareas[indiceArrayTareas] )->estado == TAREA_BLOCKED)
+			{
+				cant_bloqueadas++;
+				cantBloqueadas_prioActual++;
+				indicePrioridad[prioridad_actual]++;
+				if (cant_bloqueadas == control_OS.cantidad_Tareas)
 				{
-					current_ticks = GET_TICK_COUNT_OS();
-					if(current_ticks >= control_OS.listaTareas[j]->ticks_bloqueados)
+					control_OS.tarea_siguiente = &tareaIdle;
+					control_OS.cambioContextoNecesario = true;
+					salir = true;
+				}
+				else
+				{
+					if(cantBloqueadas_prioActual == control_OS.cantTareas_prioridad[prioridad_actual])
 					{
-						control_OS.listaTareas[j]->estado = TAREA_READY;
-						control_OS.listaTareas[j]->ticks_bloqueados = 0;
+						cantBloqueadas_prioActual = 0;
+						indicePrioridad[prioridad_actual] = 0;
+						prioridad_actual++;
 					}
 				}
-			}
 
-			if(control_OS.listaTareas[j]->estado == TAREA_READY)
+
+			}
+			else if(( (tarea*)control_OS.listaTareas[indiceArrayTareas] )->estado == TAREA_RUNNING)
 			{
-				if(aux_p > control_OS.listaTareas[j]->prioridad)
-				{
-					aux_p = control_OS.listaTareas[j]->prioridad;
-					i_task = j;
-				}
+
+				indicePrioridad[prioridad_actual]++;
+				control_OS.cambioContextoNecesario = false;
+				salir = true;
+
+
+			}
+			else
+			{
+				SET_ERROR_OS(ERR_OS_SCHEDULING,scheduler);
 			}
 
-			j++;
-			if(j >= control_OS.cantidad_Tareas)
-				j = 0;
-
-		}
-
-		if(aux_p == 255)
-		{
-			if(control_OS.tarea_actual->estado == TAREA_RUNNING)
-				control_OS.tarea_siguiente = control_OS.tarea_actual;
-			else
-				control_OS.tarea_siguiente = &TaskIdle;
 		}
 		else
 		{
-			control_OS.tarea_siguiente = control_OS.listaTareas[i_task];
+			indicePrioridad[prioridad_actual] = 0;
+			prioridad_actual++;
 		}
-
-		if(control_OS.tarea_actual->estado == TAREA_BLOCKED)
-		{
-			SET_STATE_OS(OS_NORMAL_RUN);
-			os_set_pendSV();
-		}
-
-		SET_STATE_OS(OS_NORMAL_RUN);
 	}
 
-	return RETURN_OK;
+	control_OS.estado_sistema = OS_NORMAL_RUN;
+
+
+	if(control_OS.cambioContextoNecesario)
+		setPendSV();
 }
 
-//#################
+void SysTick_Handler(void)
+{
+	uint8_t i;
+	tarea* task;		//variable para legibilidad
 
+	i = 0;
 
-void SysTick_Handler(void)  {
+	while (control_OS.listaTareas[i] != NULL)
+	{
+		task = (tarea*)control_OS.listaTareas[i];
 
+		if( task->ticks_bloqueados > 0 )
+		{
+			if((--task->ticks_bloqueados == 0) && (task->estado == TAREA_BLOCKED))
+			{
+				task->estado = TAREA_READY;
+			}
+		}
+
+		i++;
+	}
 
 
 	scheduler();
 
 
-
 	TICK_HOOKS_OS();
+}
 
+static void setPendSV(void)
+{
+
+	control_OS.cambioContextoNecesario = false;
 
 	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
 
-
 	__ISB();
-
 
 	__DSB();
 }
 
-
-
-uint32_t getContextoSiguiente(uint32_t sp_actual)  {
+uint32_t getContextoSiguiente(uint32_t sp_actual)
+{
 	uint32_t sp_siguiente;
 
+	control_OS.tarea_actual->stack_pointer = sp_actual;
 
-
-
-	if (control_OS.estado_sistema == OS_FROM_RESET)  {
-		sp_siguiente = control_OS.tarea_actual->stack_pointer;
-		control_OS.tarea_actual->estado = TAREA_RUNNING;
-		control_OS.estado_sistema = OS_NORMAL_RUN;
-	}
-
-
-	else {
-		control_OS.tarea_actual->stack_pointer = sp_actual;
+	if (control_OS.tarea_actual->estado == TAREA_RUNNING)
 		control_OS.tarea_actual->estado = TAREA_READY;
 
-		sp_siguiente = control_OS.tarea_siguiente->stack_pointer;
+	sp_siguiente = control_OS.tarea_siguiente->stack_pointer;
 
-		control_OS.tarea_actual = control_OS.tarea_siguiente;
-		control_OS.tarea_actual->estado = TAREA_RUNNING;
-	}
+	control_OS.tarea_actual = control_OS.tarea_siguiente;
+	control_OS.tarea_actual->estado = TAREA_RUNNING;
+	control_OS.estado_sistema = OS_NORMAL_RUN;
 
 	return sp_siguiente;
 }
-
-
-void TASK_ENTER_CRITICAL_OS(void)
-{
-	__disable_irq();
-	control_OS.os_criticalcount++;
-}
-void TASK_EXIT_CRITICAL_OS(void)
-{
-	if(control_OS.os_criticalcount > 0)
-		control_OS.os_criticalcount--;
-	if(control_OS.os_criticalcount == 0 )
-	{
-		__enable_irq();
-	}
-}
-
-
-
-
-tarea* GET_CURRENT_TASK_OS(void)
-{
-	return control_OS.tarea_actual;
-}
-
-void BLOCK_CURRENT_TASK_OS(void)
-{
-	control_OS.tarea_actual-> estado = TAREA_BLOCKED;
-	TASK_EXIT_CRITICAL_OS();
-	CPU_YIELD_OS();
-}
-
 
 void CPU_YIELD_OS(void)
 {
 	scheduler();
 }
 
-
-void UNBLOCK_CURRENT_TASK_OS(tarea* task)
+tarea* GET_CURRENT_TASK_OS(void)
 {
-	task->estado = TAREA_READY;
+	return control_OS.tarea_actual;
 }
 
-
-
-uint32_t GET_TICK_COUNT_OS( void )
+estadoOS GET_ESTADO_SISTEMA_OS(void)
 {
-	uint32_t aux_ticks;
+	return control_OS.estado_sistema;
+}
 
-	/* Critical section required if running on a 16 bit processor. */
-	TASK_ENTER_CRITICAL_OS();
+void SET_ESTADO_SISTEMA_OS(estadoOS estado)
+{
+	control_OS.estado_sistema = estado;
+}
+
+void SET_SCHEDULE_FROM_ISR_OS(bool value)
+{
+	control_OS.schedulingFromIRQ = value;
+}
+
+bool GET_SCHEDULE_FROM_ISR_OS(void)
+{
+	return control_OS.schedulingFromIRQ;
+}
+
+void SET_ERROR_OS(int32_t err, void* caller)
+{
+	control_OS.error = err;
+	ERROR_HOOKS_OS(caller, err);
+}
+
+void os_setWarning(int32_t warn)
+{
+	control_OS.error = warn;
+}
+
+inline void TASK_ENTER_CRITICAL_OS()
+{
+	__disable_irq();
+	control_OS.contador_critico++;
+}
+
+inline void TASK_EXIT_CRITICAL_OS()
+{
+	if (--control_OS.contador_critico <= 0)
 	{
-		aux_ticks = control_OS.os_tickcount;
-	}
-	TASK_EXIT_CRITICAL_OS();
-
-	return aux_ticks;
-}
-
-
-void SET_CURRENT_TASK_TICK_OS( uint32_t ticks_block)
-{
-	control_OS.tarea_actual->ticks_bloqueados = ticks_block;
-}
-void SET_STATE_OS(estadoOS state)
-{
-	control_OS.estado_previo = control_OS.estado_sistema;
-	//osControl.sys_previous_state = control_OS.sys_state;
-	control_OS.estado_sistema = state;
-}
-void SET_PREVIOUS_STATE_OS(void)
-{
-	estadoOS state;
-	state = control_OS.estado_sistema;
-	control_OS.estado_sistema = control_OS.estado_previo;
-	control_OS.estado_previo =  state;
-}
-
-
-
-void os_set_error(void *caller, uint16_t error)  {
-	control_OS.error = error;
-	ERROR_HOOKS_OS(caller, error) ;
-}
-
-
-void INIT_STRUCT_CONTROL_OS(void)
-{
-	int i;
-
-	control_OS.estado_previo = OS_FROM_RESET;
-	control_OS.estado_sistema = OS_FROM_RESET;
-	control_OS.tarea_actual = NULL;
-	control_OS.tarea_siguiente = NULL;
-	control_OS.error = 0;
-	control_OS.cantidad_Tareas = 0;
-
-	for (i = control_OS.cantidad_Tareas; i < MAX_TASK_LIST; i++)
-	{
-		control_OS.listaTareas[i] = NULL;
+		control_OS.contador_critico = 0;
+		__enable_irq();
 	}
 }
 
-static void os_set_pendSV(void)
+static void PRIORITY_ORDER_OS(void)
 {
+	int32_t p;
+	tarea* aux;
 
-	SCB->ICSR = SCB_ICSR_PENDSVSET_Msk;
+	// Crear una pila auxiliar
+	int32_t stack[MAX_TASK_COUNT];
 
+	// inicializar la parte superior de la pila
+	int32_t top = -1;
+	int32_t l = 0;
+	int32_t h = control_OS.cantidad_Tareas - 1;
 
-	__ISB();
+	//empujar los valores iniciales de l y h para apilar (índices a estructuras de tareas)
+	stack[++top] = l;
+	stack[++top] = h;
 
+	// Sigue apareciendo de la pila mientras no está vacía
+	while (top >= 0)
+	{
+		// Pop h and l
+		// Meter h and l
+		h = stack[top--];
+		l = stack[top--];
 
-	__DSB();
+		//Coloque el elemento de pivote en su posición correcta
+		// en una matriz ordenada
+
+		tarea** arr = control_OS.listaTareas;
+		tarea* x = arr[h];
+
+		int32_t i = (l - 1);
+
+		for (int j = l; j <= h - 1; j++)
+		{
+			if (arr[j]->prioridad <= x->prioridad)
+			{
+				i++;
+
+				//intercambiar(&arr[i], &arr[j]);
+				aux = arr[i];
+				arr[i] = arr[j];
+				arr[j] = aux;
+			}
+		}
+
+		//intercambiar(&arr[i + 1], &arr[h]);
+		aux = arr[i+1];
+		arr[i+1] = arr[h];
+		arr[h] = aux;
+
+		p = (i + 1);
+
+		// Si hay elementos en el lado izquierdo del pivote,
+		// luego empuja el lado izquierdo para apilar
+		if (p - 1 > l)
+		{
+			stack[++top] = l;
+			stack[++top] = p - 1;
+		}
+
+		// Si hay elementos en el lado derecho del pivote,
+		// luego empuja el lado derecho para apilar
+		if (p + 1 < h)
+		{
+			stack[++top] = p + 1;
+			stack[++top] = h;
+		}
+	}
 }

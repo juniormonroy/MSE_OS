@@ -10,42 +10,25 @@
 
 #include "OS_Core.h"
 
+#define QUEUE_HEAP_SIZE		64	//cantidad de bytes reservados por cada cola definida
 
-#define MAX_QUEUE_ITEM 40
 
-typedef struct _queueItem
+
+//Definicion de la estructura para las colas
+struct _cola
 {
-	void*					item;
-	struct _queueItem *	siguiente_item;
-} queueItem_t;
+	uint8_t data[QUEUE_HEAP_SIZE];
+	tarea* tarea_asociada;
+	uint16_t indice_head;
+	uint16_t indice_tail;
+	uint16_t size_elemento;
+};
+typedef struct _cola osCola;
 
-typedef struct _queue
-{
-	queueItem_t * 	primer_item;
-	queueItem_t * 	ultimo_item;
-	uint32_t 		conteoQ;
-	tarea* 		tarea_bloqueada;
-} queue_t;
+void QUEUE_INIT_OS(osCola* cola, uint16_t datasize);
 
-/**/
-queueItem_t* QUEUE_ITEM_CREATE_OS(void* item);///////////////NO ESTA
+void QUEUE_WRITE_OS(osCola* cola, void* dato);
 
-/**/
-queue_t* os_queue_create(void);///////////////////////////////NO ESTA
-
-/**/
-void QUEUE_ITEM_DELETE_OS(queue_t* queue);
-
-/**/
-void QUEUE_DELETE_OS(queue_t* queue);
-
-/**/
-void* os_queue_read( queue_t* queue);///////////////////////////////NO ESTA
-
-/**/
-void QUEUE_WRITE_OS( queue_t* queue, void* item , bool from_irq);
-
-void init_queue(void);
-
+void QUEUE_READ_OS(osCola* cola, void* dato);
 
 #endif /* MSE_ISO_MSE_OS_INC_OS_QUEUE_H_ */
